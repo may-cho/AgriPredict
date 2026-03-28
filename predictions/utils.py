@@ -1,0 +1,118 @@
+import joblib
+import os
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from django.conf import settings
+
+class ProfitPredictor:
+    def __init__(self):
+        self.yield_model = None
+        self.profit_model = None
+        self.features = None
+        self.crop_duration = {
+            'ဆန်စပါး': 5,
+            'ပြောင်း': 4,
+            'မြေပဲ': 4,
+            'နေကြာ': 4
+        }
+        self.load_models()
+
+    def load_models(self):
+        """Load pre-trained models from disk"""
+        model_dir = settings.MODEL_ROOT
+        self.yield_model = joblib.load(os.path.join(model_dir, 'yield_model_weather.pkl'))
+        self.profit_model = joblib.load(os.path.join(model_dir, 'profit_model_weather.pkl'))
+        self.features = joblib.load(os.path.join(model_dir, 'features_weather.pkl'))
+
+    
+
+    def compute_weather_features(self, monthly_rainfall, monthly_temp):
+        """Compute aggregate weather features from monthly data"""
+        total_rain = sum(monthly_rainfall)
+        avg_temp = np.mean(monthly_temp)
+        cv_rain = np.std(monthly_rainfall) / (np.mean(monthly_rainfall) + 1e-6)
+        dry_months = sum(1 for r in monthly_rainfall if r < 50)
+        hot_months = sum(1 for t in monthly_temp if t > 35)
+        max_temp = max(monthly_temp)
+        min_rain = min(monthly_rainfall)
+        return {
+            'total_rainfall_mm': total_rain,
+            'avg_temp_c': avg_temp,
+            'cv_rainfall': cv_rain,
+            'dry_months': dry_months,
+            'hot_months': hot_months,
+            'max_temp_c': max_temp,
+            'min_rainfall_mm': min_rain
+        }
+
+    def predict(self, data):
+        """
+        data: dict with keys:
+            crop, region, soil_type, area_acres, planting_month,
+            total_cost_per_acre, monthly_rainfall (list), monthly_temp (list)
+        Returns: dict with yield, profit_per_acre, total_profit, status
+        """
+        crop = data['crop']
+        region = data['region']
+        soil = data['soil_type']
+        area = data['area_acres']
+        planting_month = data['planting_month']
+        total_cost = data['total_cost_per_acre']
+        monthly_rain = data['monthly_rainfall']
+        monthly_temp = data['monthly_temp']
+
+        # Compute harvest month
+        duration = self.crop_duration.get(crop, 4)
+        harvest_month = (planting_month + duration) % 12
+        if harvest_month == 0:
+            harvest_month = 12
+
+        # Compute weather features
+        weather_feats = self.compute_weather_features(monthly_rain, monthly_temp)
+
+        # Build input dict
+        input_dict = {
+            'crop': crop,
+            'region': region,
+            'soil_type': soil,
+            'area_acres': area,
+            'planting_month': planting_month,
+            'harvest_month': harvest_month,
+            'total_cost_per_acre': total_cost,
+            **weather_feats
+        }
+
+        # Create DataFrame
+        df_input = pd.DataFrame([input_dict])
+
+        # One-hot encode categoricals
+        df_enc = pd.get_dummies(df_input, columns=['crop', 'region', 'soil_type'])
+
+        # Add circular month features
+        df_enc['planting_month_sin'] = np.sin(2 * np.pi * df_enc['planting_month'] / 12)
+        df_enc['planting_month_cos'] = np.cos(2 * np.pi * df_enc['planting_month'] / 12)
+        df_enc['harvest_month_sin'] = np.sin(2 * np.pi * df_enc['harvest_month'] / 12)
+        df_enc['harvest_month_cos'] = np.cos(2 * np.pi * df_enc['harvest_month'] / 12)
+
+        # Align columns with training features
+        for col in self.features:
+            if col not in df_enc.columns:
+                df_enc[col] = 0
+        df_enc = df_enc[self.features]
+
+        # Predict
+        yield_pred = self.yield_model.predict(df_enc)[0]
+        profit_pred = self.profit_model.predict(df_enc)[0]
+
+        total_profit = profit_pred * area
+
+        return {
+            'yield_per_acre': yield_pred,
+            'profit_per_acre': profit_pred,
+            'total_profit': total_profit,
+            'status': 'success'
+        }
+
+# Singleton instance
+predictor = ProfitPredictor()
