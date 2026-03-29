@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion } from "framer-motion";
 import {
   CloudSunIcon,
   DropletsIcon,
@@ -9,13 +9,50 @@ import {
   WheatIcon,
   CalendarDaysIcon,
   TrendingUpIcon,
-} from 'lucide-react'
-import type { WeatherData } from '../types'
+} from "lucide-react";
+import type { WeatherData } from "../types";
 interface HomePageProps {
-  weatherData: WeatherData
-  setCurrentPage: (page: string) => void
+  weatherData: WeatherData;
+  setCurrentPage: (page: string) => void;
 }
+type CloudLevel = {
+  label: string;
+  icon: string;
+  color: string;
+};
+
+const CLOUD_SCALE: Record<string, CloudLevel> = {
+  clear: {
+    label: "ကောင်းကင်ပြာ",
+    icon: "☀️",
+    color: "text-yellow-500",
+  },
+  few: {
+    label: "တိမ်အနည်းငယ်",
+    icon: "🌤️",
+    color: "text-blue-400",
+  },
+  partly: {
+    label: "တိမ်အသင့်အတင့်",
+    icon: "⛅",
+    color: "text-gray-400",
+  },
+  overcast: {
+    label: "တိမ်ထူထပ်",
+    icon: "☁️",
+    color: "text-gray-600",
+  },
+};
+
+const getCloudDetails = (all: number): CloudLevel => {
+  if (all === 0) return CLOUD_SCALE.clear;
+  if (all <= 30) return CLOUD_SCALE.few;
+  if (all <= 70) return CLOUD_SCALE.partly;
+  return CLOUD_SCALE.overcast;
+};
+
 export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
+  const cloudInfo = getCloudDetails(weatherData.clouds.all);
   return (
     <motion.div
       initial={{
@@ -45,7 +82,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
               ယနေ့အတွက် သင့်စိုက်ခင်း အခြေအနေများကို ကြည့်ရှုနိုင်ပါသည်။
             </p>
             <button
-              onClick={() => setCurrentPage('planning')}
+              onClick={() => setCurrentPage("planning")}
               className="mt-6 bg-white text-[#2D6A4F] px-6 py-3 rounded-xl font-bold flex items-center hover:bg-[#F0F7F4] transition-colors"
             >
               <SproutIcon className="w-5 h-5 mr-2" /> သီးနှံအသစ် စီစဉ်ရန်
@@ -57,10 +94,10 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold text-[#1B4332]">
-              ရာသီဥတု ({weatherData.location})
+              ရာသီဥတု ({weatherData.name})
             </h2>
             <button
-              onClick={() => setCurrentPage('climate')}
+              onClick={() => setCurrentPage("climate")}
               className="text-[#52B788] text-sm font-bold flex items-center hover:underline"
             >
               အပြည့်အစုံ <ArrowRightIcon className="w-4 h-4 ml-1" />
@@ -70,11 +107,11 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
             <div className="flex items-center">
               <CloudSunIcon className="w-12 h-12 text-[#4A90E2] mr-4" />
               <span className="text-4xl font-bold text-[#1B4332]">
-                {weatherData.temp}°C
+                {weatherData.main.temp}°C
               </span>
             </div>
             <div className="text-right">
-              <p className="text-sm text-[#6B7280]">တိမ်အသင့်အတင့်</p>
+              <p className="text-sm text-[#6B7280]">{cloudInfo.label}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
@@ -83,7 +120,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
               <div>
                 <p className="text-xs text-[#6B7280]">စိုထိုင်းဆ</p>
                 <p className="font-bold text-[#1B4332]">
-                  {weatherData.humidity}%
+                  {weatherData.main.humidity}%
                 </p>
               </div>
             </div>
@@ -92,7 +129,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
               <div>
                 <p className="text-xs text-[#6B7280]">မိုးရေချိန်</p>
                 <p className="font-bold text-[#1B4332]">
-                  {weatherData.rainfall}mm
+                  {weatherData.rain?.["1h"]}mm
                 </p>
               </div>
             </div>
@@ -168,7 +205,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
                   <div
                     className="bg-[#52B788] h-2.5 rounded-full"
                     style={{
-                      width: '75%',
+                      width: "75%",
                     }}
                   ></div>
                 </div>
@@ -201,7 +238,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
                   <div
                     className="bg-[#E76F51] h-2.5 rounded-full"
                     style={{
-                      width: '50%',
+                      width: "50%",
                     }}
                   ></div>
                 </div>
@@ -249,7 +286,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
       {/* Bottom Row: Quick Actions */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         <button
-          onClick={() => setCurrentPage('planning')}
+          onClick={() => setCurrentPage("planning")}
           className="bg-white border border-gray-200 hover:border-[#2D6A4F] hover:shadow-md text-[#1B4332] p-6 rounded-2xl flex flex-col items-center justify-center space-y-3 transition-all group"
         >
           <div className="w-12 h-12 bg-[#F0F7F4] group-hover:bg-[#2D6A4F] rounded-full flex items-center justify-center transition-colors">
@@ -259,7 +296,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
         </button>
 
         <button
-          onClick={() => setCurrentPage('costs')}
+          onClick={() => setCurrentPage("costs")}
           className="bg-white border border-gray-200 hover:border-[#2D6A4F] hover:shadow-md text-[#1B4332] p-6 rounded-2xl flex flex-col items-center justify-center space-y-3 transition-all group"
         >
           <div className="w-12 h-12 bg-[#F0F7F4] group-hover:bg-[#2D6A4F] rounded-full flex items-center justify-center transition-colors">
@@ -269,7 +306,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
         </button>
 
         <button
-          onClick={() => setCurrentPage('harvest')}
+          onClick={() => setCurrentPage("harvest")}
           className="bg-white border border-gray-200 hover:border-[#2D6A4F] hover:shadow-md text-[#1B4332] p-6 rounded-2xl flex flex-col items-center justify-center space-y-3 transition-all group"
         >
           <div className="w-12 h-12 bg-[#F0F7F4] group-hover:bg-[#2D6A4F] rounded-full flex items-center justify-center transition-colors">
@@ -279,7 +316,7 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
         </button>
 
         <button
-          onClick={() => setCurrentPage('advisory')}
+          onClick={() => setCurrentPage("advisory")}
           className="bg-white border border-gray-200 hover:border-[#2D6A4F] hover:shadow-md text-[#1B4332] p-6 rounded-2xl flex flex-col items-center justify-center space-y-3 transition-all group"
         >
           <div className="w-12 h-12 bg-[#F0F7F4] group-hover:bg-[#2D6A4F] rounded-full flex items-center justify-center transition-colors">
@@ -289,5 +326,5 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
         </button>
       </div>
     </motion.div>
-  )
+  );
 }
