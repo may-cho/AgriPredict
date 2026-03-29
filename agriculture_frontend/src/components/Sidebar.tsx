@@ -2,12 +2,12 @@ import React from 'react'
 import {
   HomeIcon,
   SproutIcon,
-  CircleDollarSignIcon,
+  // CircleDollarSignIcon,
   WheatIcon,
   CloudSunIcon,
   ClipboardListIcon,
   UserIcon,
-  LogOutIcon,
+  // LogOutIcon,
 } from 'lucide-react'
 import logo from '../assets/logo.png'
 interface SidebarProps {

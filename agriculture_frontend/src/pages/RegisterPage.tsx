@@ -11,6 +11,7 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
 } from 'lucide-react'
+import logo from '../assets/logo.png'
 
 interface RegisterPageProps {
   onRegister: (name: string, phone: string) => void
@@ -114,15 +115,20 @@ export function RegisterPage({ onRegister, onBackToLogin }: RegisterPageProps) {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="w-20 h-20 bg-[#2D6A4F] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg"
+            className="w-15 h-20 bg-[#F0F7F4] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg"
           >
-            <SproutIcon className="w-10 h-10 text-white" />
+            {/* <SproutIcon className="w-10 h-10 text-white" /> */}
+            <img 
+          src={logo} 
+          alt="စိုက်ပျိုး​မြော်မြင် Logo" 
+          className="w-35 h-16 object-contain rounded-lg left-0" 
+        />
           </motion.div>
           <h1 className="text-3xl font-bold text-[#1B4332]">
             အကောင့်အသစ် ဖွင့်ရန်
           </h1>
           <p className="text-[#6B7280] mt-2">
-            မြန်မာစိုက်ပျိုးရေး AI အဖွဲ့ဝင်ဖြစ်လိုက်ပါ
+            စိုက်ပျိုး​မြော်မြင် အဖွဲ့ဝင်ဖြစ်လိုက်ပါ
           </p>
         </div>
 

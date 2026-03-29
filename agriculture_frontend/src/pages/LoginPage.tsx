@@ -7,6 +7,7 @@ import {
   EyeIcon,
   EyeOffIcon,
 } from 'lucide-react'
+import logo from '../assets/logo.png'
 
 interface LoginPageProps {
   onLogin: (name: string) => void
@@ -63,12 +64,17 @@ export function LoginPage({ onLogin, onRegisterClick }: LoginPageProps) {
               type: 'spring',
               stiffness: 200,
             }}
-            className="w-20 h-20 bg-[#2D6A4F] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg"
+            className="w-20 h-20 bg-[#F0F7F4] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg"
           >
-            <SproutIcon className="w-10 h-10 text-white" />
+            {/* <SproutIcon className="w-10 h-10 text-white" /> */}
+            <img 
+          src={logo} 
+          alt="စိုက်ပျိုး​မြော်မြင် Logo" 
+          className="w-25 h-16 object-contain rounded-lg left-0" 
+        />
           </motion.div>
           <h1 className="text-3xl font-bold text-[#1B4332]">
-            မြန်မာ စိုက်ပျိုးရေး AI
+            စိုက်ပျိုး​မြော်မြင်
           </h1>
           <p className="text-[#6B7280] mt-2 text-lg">
             သင့်စိုက်ခင်းကို AI ဖြင့် စီမံခန့်ခွဲပါ
