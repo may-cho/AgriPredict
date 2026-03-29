@@ -2,6 +2,7 @@ import { BellIcon, CalendarIcon } from 'lucide-react'
 interface TopHeaderProps {
   currentPage: string
   notificationCount: number
+  userName?: string;
 }
 export function TopHeader({ currentPage, notificationCount }: TopHeaderProps) {
   const getPageTitle = () => {
