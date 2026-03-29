@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from .serializers import PredictionRequestSerializer
 from .utils import predictor
 from .constants import MYANMAR_REGION_COORDS
-from .nasa_service import get_nasa_monthly_weather
+from .nasa_service import get_nasa_monthly_weather,get_nasa_weather
 
 def get_coords_from_region(region_name):
     """Region အမည်မှ Lat/Lon ကို ရှာပေးရန် (Default: Yangon)"""
@@ -125,30 +125,42 @@ class CropPredictionView(APIView):
 @api_view(['GET'])
 def get_crop_status(request, cycle_id):
     try:
-        # ၁။ Cycle data ကို ယူမယ်
         cycle = CropCycle.objects.get(id=cycle_id)
-        # ၂။ အဲဒီအောက်က Stages တွေကို ရက်စွဲအလိုက် စီယူမယ်
-        stages = cycle.stages.all().order_by('expected_date')
+        location = MYANMAR_REGION_COORDS.get(cycle.region, MYANMAR_REGION_COORDS["Yangon"])
+        lat = location["lat"]
+        lon = location["lon"]
+        # ၁။ NASA Weather Data ယူခြင်း (Dynamic Dates သုံးထားသည်)
+        today = datetime.now()
+        start_date = (today - timedelta(days=7)).strftime('%Y%m%d')
+        end_date = today.strftime('%Y%m%d')
+        weather = get_nasa_weather(lat, lon, start_date, end_date)
         
-        timeline = []
-        for s in stages:
-            timeline.append({
-                "id": s.id,
-                "name": s.stage_name,
-                "date": s.expected_date.strftime('%d %b'),
-                "is_completed": s.is_completed,
-                "status": s.status_label
-            })
+        # ၂။ Notifications တွက်ချက်ခြင်း
+        notifications = get_notifications(cycle, weather)
+        
+        # ၃။ Timeline Data စီစဉ်ခြင်း
+        # (is_completed, is_current logic များပါဝင်ပြီးသားဖြစ်ရမည်)
+        crop_name = cycle.crop_name
 
+        planting_month = cycle.start_date.month if cycle.start_date else 3
+
+        timeline = predictor.calculate_timeline(crop_name, planting_month)
+            
+
+        # ၄။ Response တစ်ခုတည်းအဖြစ် ပေါင်းပို့ခြင်း
         return Response({
-            "crop": cycle.crop_name,
-            "region": cycle.region,
-            "start_date": cycle.start_date.strftime('%d %B %Y'),
+            "cycle_info": {
+                "name": cycle.crop_name,
+                "location": f"{lat}, {lon}",
+                "start_date": cycle.start_date
+            },
+            "weather": weather,
+            "notifications": notifications,
             "timeline": timeline
         })
+        
     except CropCycle.DoesNotExist:
-        return Response({"error": "Data record not found"}, status=404)
-
+        return Response({"error": "Cycle not found"}, status=404)
 
 # views.py
 @api_view(['PATCH']) # Patch က data တစ်စိတ်တစ်ပိုင်းကိုပြင်တာမို့လို့ ပိုသင့်တော်တယ်
@@ -170,6 +182,118 @@ def update_stage_status(request, stage_id):
     except CropStage.DoesNotExist:
         return Response({"error": "Stage not found"}, status=404)
         
+
+
+
+def get_notifications(cycle, weather_data):
+    notifs = []
+    
+    # ၁။ 'လက်ရှိ' ကို အရင်ရှာမယ်
+    current_stage = cycle.stages.filter(status_label="လက်ရှိ").first()
+    
+    # ၂။ မတွေ့ရင် 'ပြီးစီး' သွားတဲ့အထဲက နောက်ဆုံးတစ်ခု (Latest Completed) ကို ယူမယ်
+    if not current_stage:
+        current_stage = cycle.stages.filter(status_label="ပြီးစီး").order_by('-expected_date').first()
+
+    # ၃။ အဲဒါမှ မရှိသေးရင် (စိုက်ပျိုးခါစဆိုရင်) ပထမဆုံး stage ကို ယူမယ်
+    if not current_stage:
+        current_stage = cycle.stages.all().order_by('expected_date').first()
+
+    # Debug: အခုဆိုရင် 'ပြီးစီး' သွားတဲ့ stage တစ်ခုခုတော့ ပေါ်လာပါပြီ
+    print(f"DEBUG: Current Stage Selected -> {current_stage}")
+
+    if not current_stage:
+        return []
+
+    avg_rain = weather_data.get('avg_rain', 0)
+    avg_temp = weather_data.get('avg_temp', 0)
+    avg_humid = weather_data.get('avg_humid', 75)
+    stage_name = current_stage.stage_name
+
+    # --- ၄။ Weather Logic (အခု Notification ပေါ်အောင် Threshold တွေကို ညှိထားပါတယ်) ---
+    if avg_rain < 5.0: # မိုးနည်းနေလျှင် (မင်းရဲ့ ၀.၃၄ နဲ့ဆို ဒီထဲဝင်မယ်)
+        notifs.append({
+            "id": 101, "type": "irrigation", "urgency": "high",
+            "message": f"လက်ရှိ {stage_name} အဆင့်အပြီးတွင် မိုးရွာသွန်းမှု နည်းနေသဖြင့် ရေသွင်းရန် ပြင်ဆင်ပါ။",
+            "daysUntil": 1
+        })
+    
+    if avg_temp > 25.0: # အပူချိန် (မင်းရဲ့ ၂၅.၉ နဲ့ဆို ဒီထဲဝင်မယ်)
+        notifs.append({
+            "id": 201, "type": "pest", "urgency": "medium",
+            "message": f"{stage_name} အဆင့်တွင် ပိုးမွှားကျရောက်မှုရှိမရှိ စစ်ဆေးပေးပါ။",
+            "daysUntil": 3
+        })
+
+    if avg_temp > 28.0 and avg_humid > 80.0:
+        notifs.append({
+            "id": 301, "type": "warning", "urgency": "high",
+            "message": f"အပူချိန်နှင့် စိုထိုင်းဆ မြင့်မားနေသဖြင့် {stage_name} အဆင့်တွင် မှိုရောဂါ (Blight) ကျရောက်နိုင်ခြေ များပါသည်။",
+            "daysUntil": 2
+        })
+    if "ကြီးထွားမှု" in stage_name or "အပင်ပွား" in stage_name:
+        if avg_rain > 0 and avg_rain < 15.0: # မိုးဖွဲဖွဲလေးပဲ ရွာမည့်အခြေအနေ
+            notifs.append({
+                "id": 401, "type": "success", "urgency": "medium",
+                "message": "မိုးဖွဲဖွဲလေး ရွာသွန်းနေသဖြင့် မြေသြဇာကျွေးရန် အလွန်သင့်တော်သော အချိန်ဖြစ်ပါသည်။",
+                "daysUntil": 1
+            })
+        elif avg_rain > 50.0: # မိုးအရမ်းများမည့်အခြေအနေ
+            notifs.append({
+                "id": 402, "type": "warning", "urgency": "high",
+                "message": "မိုးသည်းထန်စွာ ရွာသွန်းနိုင်သဖြင့် ယနေ့ မြေသြဇာကျွေးခြင်းကို ခေတ္တဆိုင်းငံ့ထားပါ။",
+                "daysUntil": 3
+            })
+    if avg_temp > 38.0:
+        notifs.append({
+            "id": 501, "type": "danger", "urgency": "high",
+            "message": f"အပူချိန် လွန်ကဲနေသဖြင့် {stage_name} အဆင့်တွင် အနှံများ အောင်မြင်ရန် ရေသွင်းခြင်းကို ညနေပိုင်းတွင် ပြုလုပ်ပေးပါ။",
+            "daysUntil": 1
+        })
+    if "ရိတ်သိမ်း" in stage_name:
+        if avg_rain > 20.0:
+            notifs.append({
+                "id": 601, "type": "warning", "urgency": "high",
+                "message": "ရိတ်သိမ်းချိန်တွင် မိုးရွာသွန်းနိုင်သဖြင့် ရိတ်သိမ်းပြီး သီးနှံများကို လုံခြုံစွာ သိမ်းဆည်းရန် ပြင်ဆင်ပါ။",
+                "daysUntil": 1
+            })
+        else:
+            notifs.append({
+                "id": 602, "type": "success", "urgency": "medium",
+                "message": "ရာသီဥတု သာယာနေသဖြင့် သီးနှံများ ရိတ်သိမ်းရန်နှင့် အခြောက်လှန်းရန် အကောင်းဆုံးအချိန် ဖြစ်ပါသည်။",
+                "daysUntil": 0
+            })
+    return notifs
+@api_view(['GET'])
+def get_crop_cycle_details(request, cycle_id):
+    cycle = CropCycle.objects.get(id=cycle_id)
+    
+    # ၁။ Dynamic Dates သတ်မှတ်ခြင်း (ယနေ့ နဲ့ လွန်ခဲ့တဲ့ ၇ ရက်)
+    today = datetime.now()
+    seven_days_ago = today - timedelta(days=7)
+    
+    # NASA API format (YYYYMMDD) အတိုင်း ပြောင်းလဲခြင်း
+    start_date_str = seven_days_ago.strftime('%Y%m%d')
+    end_date_str = today.strftime('%Y%m%d')
+    
+    # ၂။ NASA မှ Dynamic Weather Data ယူခြင်း
+    # အခုဆိုရင် ရက်စွဲတွေက စက်ရဲ့ နာရီပေါ်မူတည်ပြီး အလိုအလျောက် ပြောင်းသွားပါပြီ
+    weather = get_nasa_weather(
+        cycle.lat, 
+        cycle.lon, 
+        start_date_str, 
+        end_date_str
+    )
+    
+    # ၃။ အကြံပြုချက်များ ထုတ်ယူခြင်း
+    notifications = get_notifications(cycle, weather)
+    
+    return Response({
+        "today_date": today.strftime('%d %b %Y'),
+        "weather": weather,
+        "notifications": notifications,
+        "timeline": list(cycle.stages.values())
+    })
 @api_view(['POST'])
 def save_farmer_decision(request):
     data = request.data

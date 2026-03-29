@@ -124,15 +124,17 @@ export function HomePage({ weatherData, setCurrentPage }: HomePageProps) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center">
-              <CloudSunIcon className="w-5 h-5 text-[#4A90E2] mr-2" />
-              <div>
-                <p className="text-xs text-[#6B7280]">မိုးရေချိန်</p>
-                <p className="font-bold text-[#1B4332]">
-                  {weatherData.rain?.["1h"]}mm
-                </p>
+            {weatherData.rain && (
+              <div className="flex items-center">
+                <CloudSunIcon className="w-5 h-5 text-[#4A90E2] mr-2" />
+                <div>
+                  <p className="text-xs text-[#6B7280]">မိုးရေချိန်</p>
+                  <p className="font-bold text-[#1B4332]">
+                    {weatherData.rain?.["1h"]}mm
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

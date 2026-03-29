@@ -17,32 +17,6 @@ interface AdvisoryPageProps {
   notifications: Notification[];
 }
 export function AdvisoryPage({ notifications }: AdvisoryPageProps) {
-  const lifecycleSteps = [
-    {
-      id: 1,
-      title: "မြေပြင်ညှိခြင်း",
-      status: "completed",
-      date: "၁ မတ်လ",
-    },
-    {
-      id: 2,
-      title: "စိုက်ပျိုးခြင်း",
-      status: "completed",
-      date: "၅ မတ်လ",
-    },
-    {
-      id: 3,
-      title: "ပြုစုစောင့်ရှောက်ခြင်း",
-      status: "active",
-      date: "ယခု",
-    },
-    {
-      id: 4,
-      title: "ရိတ်သိမ်းခြင်း",
-      status: "pending",
-      date: "၃၀ ဧပြီလ (ခန့်မှန်း)",
-    },
-  ];
   const getIcon = (type: string) => {
     switch (type) {
       case "irrigation":
@@ -63,14 +37,26 @@ export function AdvisoryPage({ notifications }: AdvisoryPageProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:8000/api/crop-status/${savedCycleId}/`)
-      .then((res) => {
+    const fetchData = async () => {
+      setLoading(true); // ဒေတာအသစ်မလာခင် loading ပြထားမယ်
+      try {
+        const res = await axios.get(
+          `http://localhost:8000/api/crop-status/${savedCycleId}/`,
+        );
+
+        // Backend ကနေ ပို့လိုက်တဲ့ { weather, notifications, timeline, cycle_details } အကုန်လုံးကို သိမ်းမယ်
         setData(res.data);
-        console.log(res.data);
+        console.log("Advisory Data Loaded:", res.data);
+      } catch (err) {
+        console.error("API Fetch Error:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => console.error(err));
+      }
+    };
+
+    if (savedCycleId) {
+      fetchData();
+    }
   }, [savedCycleId]);
 
   if (loading) return <div className="p-10 text-center">Loading Status...</div>;
@@ -162,7 +148,7 @@ export function AdvisoryPage({ notifications }: AdvisoryPageProps) {
                 စိုက်ပျိုးမှု အဆင့်ဆင့်
               </h3>
               <span className="bg-[#E8F3EE] text-[#2D6A4F] px-3 py-1 rounded-full text-sm font-bold">
-                {data.crop}
+                {data.cycle_info.name}
               </span>
             </div>
 
@@ -172,9 +158,9 @@ export function AdvisoryPage({ notifications }: AdvisoryPageProps) {
                 {data.timeline.map((step, i) => {
                   // Status အလိုက် အရောင်နဲ့ ပုံစံ သတ်မှတ်ခြင်း
                   const isFinished =
-                    step.is_completed || step.status === "ပြီးစီး";
-                  const isActive = step.status === "လက်ရှိ";
-                  const isUpcoming = step.status === "လာမည့်";
+                    step.is_completed || step.status_label === "ပြီးစီး";
+                  const isActive = step.status_label === "လက်ရှိ";
+                  const isUpcoming = step.status_label === "လာမည့်";
 
                   return (
                     <div
@@ -213,14 +199,14 @@ export function AdvisoryPage({ notifications }: AdvisoryPageProps) {
                         <h4
                           className={`font-bold text-lg ${isActive ? "text-xl text-[#1B4332]" : ""}`}
                         >
-                          {step.name}
+                          {step.stage_name}
                         </h4>
 
                         <div className="flex items-center mt-1">
                           <CalendarClockIcon className="w-4 h-4 mr-1 opacity-70" />
                           <span className="text-sm font-medium">
                             {isActive ? "ယနေ့ - " : "ခန့်မှန်း - "}{" "}
-                            {toBurmeseDate(step.date)}
+                            {toBurmeseDate(step.date_str)}
                           </span>
                         </div>
 
@@ -257,7 +243,7 @@ export function AdvisoryPage({ notifications }: AdvisoryPageProps) {
               လုပ်ဆောင်ရန် အကြံပြုချက်များ
             </h3>
             <div className="space-y-4">
-              {notifications.map((notif) => (
+              {data.notifications.map((notif) => (
                 <div
                   key={notif.id}
                   className={`rounded-2xl p-6 border-l-8 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer ${getColor(notif.urgency)}`}
