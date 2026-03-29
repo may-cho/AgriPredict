@@ -80,6 +80,21 @@ export function CropPlanningPage() {
         if (choice === "yes") {
           // toast.success("စိုက်ပျိုးမှု အောင်မြင်ပါစေ။");
           // navigate("/dashboard");
+          try {
+            const response = await axios.post(
+              `${API_BASE_URL}/save-decision/`,
+              payload,
+            );
+            const newCycleId = response.data.cycle_id; // Backend က ပြန်ပို့ပေးတဲ့ ID
+
+            // ✅ LocalStorage ထဲမှာ သိမ်းလိုက်မယ်
+            localStorage.setItem("active_crop_cycle_id", newCycleId.toString());
+
+            // ပြီးရင် Dashboard ဆီကို သွားခိုင်းမယ် (ဥပမာ- Navigate သုံးပြီး)
+            // window.location.href = '/dashboard';
+          } catch (error) {
+            console.error(error);
+          }
         }
       }
     } catch (error) {

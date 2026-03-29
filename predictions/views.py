@@ -4,8 +4,7 @@ from rest_framework import status
 from .models import FarmerDecision,CropCycle,CropStage
 from rest_framework.decorators import api_view
 
-import datetime
-
+from datetime import datetime, timedelta
 # မင်းရဲ့ project structure အလိုက် import များကို ပြန်စစ်ပါ
 from .serializers import PredictionRequestSerializer
 from .utils import predictor
@@ -123,35 +122,81 @@ class CropPredictionView(APIView):
             )
             
             
+@api_view(['GET'])
+def get_crop_status(request, cycle_id):
+    try:
+        # ၁။ Cycle data ကို ယူမယ်
+        cycle = CropCycle.objects.get(id=cycle_id)
+        # ၂။ အဲဒီအောက်က Stages တွေကို ရက်စွဲအလိုက် စီယူမယ်
+        stages = cycle.stages.all().order_by('expected_date')
+        
+        timeline = []
+        for s in stages:
+            timeline.append({
+                "id": s.id,
+                "name": s.stage_name,
+                "date": s.expected_date.strftime('%d %b'),
+                "is_completed": s.is_completed,
+                "status": s.status_label
+            })
+
+        return Response({
+            "crop": cycle.crop_name,
+            "region": cycle.region,
+            "start_date": cycle.start_date.strftime('%d %B %Y'),
+            "timeline": timeline
+        })
+    except CropCycle.DoesNotExist:
+        return Response({"error": "Data record not found"}, status=404)
 
 
+# views.py
+@api_view(['PATCH']) # Patch က data တစ်စိတ်တစ်ပိုင်းကိုပြင်တာမို့လို့ ပိုသင့်တော်တယ်
+def update_stage_status(request, stage_id):
+    try:
+        stage = CropStage.objects.get(id=stage_id)
+        # Frontend ကနေ is_completed (true/false) ပို့ပေးရမယ်
+        stage.is_completed = request.data.get('is_completed', False)
+        
+        # Status Label ကိုပါ တစ်ခါတည်း update လုပ်မယ်
+        if stage.is_completed:
+            stage.status_label = "ပြီးစီး"
+        else:
+            # တကယ်လို့ အမှန်ခြစ် ပြန်ဖြုတ်ရင် (ယနေ့ထက်စောရင် လာမည့်၊ ယနေ့ဆိုရင် လက်ရှိ)
+            stage.status_label = "လာမည့်" 
+            
+        stage.save()
+        return Response({"status": "success", "is_completed": stage.is_completed})
+    except CropStage.DoesNotExist:
+        return Response({"error": "Stage not found"}, status=404)
+        
 @api_view(['POST'])
 def save_farmer_decision(request):
     data = request.data
     if data.get('decision') == 'yes':
-        # ၁။ Crop Cycle (အဓိက အနှစ်ချုပ်) ကို အရင်သိမ်းမယ်
+        # ၁။ Cycle ကို အရင်ဆောက်မယ်
         cycle = CropCycle.objects.create(
             crop_name=data.get('crop'),
             region=data.get('region'),
             area_acres=data.get('area_acres')
         )
 
-        # ၂။ Predictor ကနေ Timeline တွက်ချက်မယ်
+        # ၂။ Predictor ကနေ timeline တွက်မယ်
+        # (စိုက်ပျိုးမည့်လကို လက်ရှိလအဖြစ် ယူဆမယ်)
         current_month = datetime.now().month
         timeline_data = predictor.calculate_timeline(data.get('crop'), current_month)
 
-        # ၃။ တွက်ချက်ရလာတဲ့ အဆင့်တစ်ခုချင်းစီကို Database ထဲ Loop ပတ်ပြီး သိမ်းမယ်
+        # ၃။ Database ထဲမှာ Stage တစ်ခုချင်းစီကို သိမ်းမယ်
         for stage in timeline_data:
-            # stage['date'] စာသားကို Python Date object ပြောင်းရန် (ဥပမာ "15 June" -> Date)
-            # ဒါမှမဟုတ် predictor ထဲမှာ date object အတိုင်း ပြန်ပေးဖို့ ပြင်ထားရင် ပိုလွယ်မယ်
-            
             CropStage.objects.create(
                 cycle=cycle,
                 stage_name=stage['stage_name'],
-                expected_date=datetime.now().date(), # 💡 မှတ်ချက်- ဒီနေရာမှာ stage date ကို conversion လုပ်ပေးရပါမယ်
+                # 🌟 ဒီနေရာမှာ 'date_obj' ကို သုံးရပါမယ် (ဒါမှ ၂၉ မတ် မဟုတ်ဘဲ ရက်တွေ ကွဲသွားမှာပါ)
+                expected_date=stage['date_obj'], 
                 is_completed=stage['is_completed'],
                 status_label=stage['status_label']
             )
 
         return Response({"status": "success", "cycle_id": cycle.id}, status=201)
     
+    return Response({"status": "no_action", "message": "Decision was 'no'."})
