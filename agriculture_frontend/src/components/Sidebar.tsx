@@ -2,13 +2,14 @@ import React from 'react'
 import {
   HomeIcon,
   SproutIcon,
-  CircleDollarSignIcon,
+  // CircleDollarSignIcon,
   WheatIcon,
   CloudSunIcon,
   ClipboardListIcon,
   UserIcon,
-  LogOutIcon,
+  // LogOutIcon,
 } from 'lucide-react'
+import logo from '../assets/logo.png'
 interface SidebarProps {
   currentPage: string
   setCurrentPage: (page: string) => void
@@ -50,10 +51,15 @@ export function Sidebar({
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 flex flex-col shadow-sm z-20">
       {/* Brand */}
-      <div className="h-16 flex items-center px-6 border-b border-gray-100">
-        <SproutIcon className="w-8 h-8 text-[#2D6A4F] mr-3" />
+      <div className="h-16 flex items-center p-0 border-b border-gray-100">
+        {/* <SproutIcon className="w-8 h-8 text-[#2D6A4F] mr-3" /> */}
+        <img 
+          src={logo} 
+          alt="စိုက်ပျိုး​မြော်မြင် Logo" 
+          className="w-25 h-16 object-contain rounded-lg left-0" 
+        />
         <span className="font-bold text-lg text-[#2D6A4F]">
-          မြန်မာ စိုက်ပျိုးရေး AI
+          စိုက်ပျိုး​မြော်မြင်
         </span>
       </div>
 

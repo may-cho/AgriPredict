@@ -20,11 +20,11 @@ export function TopHeader({ currentPage, notificationCount }: TopHeaderProps) {
       case 'advisory':
         return 'စိုက်ပျိုးရေး အကြံပြုချက်'
       default:
-        return 'မြန်မာ စိုက်ပျိုးရေး AI'
+        return 'စိုက်ပျိုး​မြော်မြင်'
     }
   }
   // Mock current date in Myanmar
-  const currentDate = '၁၅ မတ်လ၊ ၂၀၂၄'
+  // const currentDate = '၁၅ မတ်လ၊ ၂၀၂၄'
   return (
     <div className="h-16 bg-white border-b border-gray-200 sticky top-0 z-10 flex items-center justify-between px-8 shadow-sm">
       <h1 className="text-xl font-bold text-[#1B4332]">{getPageTitle()}</h1>
@@ -32,7 +32,13 @@ export function TopHeader({ currentPage, notificationCount }: TopHeaderProps) {
       <div className="flex items-center space-x-6">
         <div className="flex items-center text-[#6B7280] bg-[#F0F7F4] px-4 py-2 rounded-lg">
           <CalendarIcon className="w-4 h-4 mr-2" />
-          <span className="text-sm font-bold">{currentDate}</span>
+          <span className="font-bold text-[#1B4332]">
+            {new Date().toLocaleDateString("my-MM", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
         </div>
 
         <button className="relative p-2 text-[#6B7280] hover:bg-[#F0F7F4] rounded-full transition-colors">
