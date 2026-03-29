@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Sidebar } from "./components/Sidebar";
 import { TopHeader } from "./components/TopHeader";
@@ -15,10 +15,19 @@ import type {
   Notification,
   WeatherData,
 } from "./types";
-import { useWeatherData } from "./hooks/useWeatherData";
+import { useWeatherData, useForecastData } from "./hooks/useWeatherHook";
+import { useGeolocation } from "./hooks/useGeoLocation";
 
 export function App() {
   const [currentPage, setCurrentPage] = useState("home");
+  const { coords, loading: geoLoading } = useGeolocation();
+
+  const { weatherData, loading: weatherLoading } = useWeatherData(coords);
+  const {
+    forecastData,
+    loading: forecastLoading,
+    dailyData,
+  } = useForecastData(coords);
   // Shared State & Mock Data
   const [cropData, setCropData] = useState<CropData>({
     type: "",
@@ -86,7 +95,7 @@ export function App() {
     name: "Mandalay",
     cod: 200,
   };
-  const { weatherData } = useWeatherData();
+
   const notifications: Notification[] = [
     {
       id: "1",
@@ -135,7 +144,10 @@ export function App() {
         );
       case "climate":
         return (
-          <ClimateMonitorPage weatherData={weatherData ?? mockWeatherData} />
+          <ClimateMonitorPage
+            forecastData={forecastData}
+            dailyData={dailyData || []}
+          />
         );
       case "advisory":
         return <AdvisoryPage notifications={notifications} />;

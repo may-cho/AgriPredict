@@ -13,7 +13,6 @@ interface GeolocationState {
 export const useGeolocation = (): GeolocationState => {
   const isSupported =
     typeof window !== "undefined" && "geolocation" in navigator;
-
   const [state, setState] = useState<GeolocationState>({
     coords: { lat: null, lon: null },
     error: null,
@@ -23,20 +22,27 @@ export const useGeolocation = (): GeolocationState => {
   useEffect(() => {
     const fetchIpLocation = async () => {
       try {
-        const res = await fetch("https://ipapi.co/json/");
+        // ip-api.com က CORS rules ပိုလျော့ရဲပြီး limit ပိုကောင်းပါတယ်
+        const res = await fetch("http://ip-api.com/json/");
         const data = await res.json();
+
+        if (data.status === "success") {
+          setState({
+            coords: { lat: data.lat, lon: data.lon },
+            error: null,
+            loading: false,
+          });
+          console.log("Fallback Success (IP):", data.city);
+        } else {
+          throw new Error("IP Location failed");
+        }
+      } catch (e) {
+        // တကယ်လို့ အားလုံးမရရင် Static Data (Yangon) ပြလိုက်ပါ (Demo အတွက် အန္တရာယ်ကင်းဆုံးပဲ)
         setState({
-          coords: { lat: data.latitude, lon: data.longitude },
-          error: null,
+          coords: { lat: 16.8409, lon: 96.1735 },
+          error: "Using Default Location (Yangon)",
           loading: false,
         });
-        console.log("Fallback Location (IP):", data.city);
-      } catch (e) {
-        setState((prev) => ({
-          ...prev,
-          error: "Location failed",
-          loading: false,
-        }));
       }
     };
 
@@ -45,7 +51,6 @@ export const useGeolocation = (): GeolocationState => {
       return;
     }
 
-    // ၂။ Native Geolocation ကို အရင်ကြိုးစားမယ်
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setState({
@@ -55,12 +60,10 @@ export const useGeolocation = (): GeolocationState => {
         });
       },
       (err) => {
-        console.warn(
-          `Native Geo Error (${err.code}): ${err.message}. Trying Fallback...`,
-        );
-        fetchIpLocation(); // Native မရရင် IP ဘက်ကို ကူးမယ်
+        console.warn("Native Geo failed, trying IP fallback...");
+        fetchIpLocation();
       },
-      { timeout: 5000 }, // ၅ စက္ကန့်ပဲ စောင့်မယ်
+      { timeout: 5000 },
     );
   }, [isSupported]);
 
