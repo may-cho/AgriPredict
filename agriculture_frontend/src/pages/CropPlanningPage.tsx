@@ -103,7 +103,7 @@ export function CropPlanningPage() {
             NASA ရာသီဥတုဒေတာနှင့် AI ကို အသုံးပြု၍ တွက်ချက်ထားပါသည်။
           </p>
         </div>
-        <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-2">
+        {/* <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-2">
           <CalendarIcon size={18} className="text-[#2D6A4F]" />
           <span className="font-bold text-[#1B4332]">
             {new Date().toLocaleDateString("my-MM", {
@@ -112,7 +112,7 @@ export function CropPlanningPage() {
               year: "numeric",
             })}
           </span>
-        </div>
+        </div> */}
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
