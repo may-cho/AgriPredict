@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import ProfitPredictionView
+from .views import CropPredictionView,save_farmer_decision
 
 urlpatterns = [
-    path('predict/', ProfitPredictionView.as_view(), name='predict'),
+    path('predict/', CropPredictionView.as_view(), name='predict'),
+    path('save-decision/', save_farmer_decision)
 ]

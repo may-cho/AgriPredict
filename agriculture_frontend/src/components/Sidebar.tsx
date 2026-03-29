@@ -21,36 +21,32 @@ export function Sidebar({
 }: SidebarProps) {
   const navItems = [
     {
-      id: 'home',
-      label: 'ပင်မ',
+      id: "home",
+      label: "ပင်မ",
       icon: HomeIcon,
     },
     {
-      id: 'planning',
-      label: 'စိုက်ပျိုးရေး',
+      id: "planning",
+      label: "စိုက်ပျိုးရေး",
       icon: SproutIcon,
     },
+
     {
-      id: 'costs',
-      label: 'ကုန်ကျစရိတ်',
-      icon: CircleDollarSignIcon,
-    },
-    {
-      id: 'harvest',
-      label: 'ရိတ်သိမ်းခြင်း',
+      id: "harvest",
+      label: "ရိတ်သိမ်းခြင်း",
       icon: WheatIcon,
     },
     {
-      id: 'climate',
-      label: 'ရာသီဥတု',
+      id: "climate",
+      label: "ရာသီဥတု",
       icon: CloudSunIcon,
     },
     {
-      id: 'advisory',
-      label: 'အကြံပြု',
+      id: "advisory",
+      label: "အကြံပြု",
       icon: ClipboardListIcon,
     },
-  ]
+  ];
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 flex flex-col shadow-sm z-20">
       {/* Brand */}
@@ -64,20 +60,20 @@ export function Sidebar({
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
         {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = currentPage === item.id
+          const Icon = item.icon;
+          const isActive = currentPage === item.id;
           return (
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
-              className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-[#E8F3EE] text-[#2D6A4F] border-l-4 border-[#2D6A4F]' : 'text-[#6B7280] hover:bg-[#F0F7F4] border-l-4 border-transparent'}`}
+              className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${isActive ? "bg-[#E8F3EE] text-[#2D6A4F] border-l-4 border-[#2D6A4F]" : "text-[#6B7280] hover:bg-[#F0F7F4] border-l-4 border-transparent"}`}
             >
               <Icon
-                className={`w-5 h-5 mr-3 ${isActive ? 'text-[#2D6A4F]' : 'text-[#6B7280]'}`}
+                className={`w-5 h-5 mr-3 ${isActive ? "text-[#2D6A4F]" : "text-[#6B7280]"}`}
               />
               <span className="font-bold text-sm">{item.label}</span>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -99,5 +95,5 @@ export function Sidebar({
         </button>
       </div>
     </div>
-  )
+  );
 }

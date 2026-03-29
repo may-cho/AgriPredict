@@ -287,8 +287,7 @@ export function App() {
         return (
           <CropPlanningPage cropData={cropData} setCropData={setCropData} />
         );
-      case "costs":
-        return <CostManagementPage costs={costs} setCosts={setCosts} />;
+
       case "harvest":
         return (
           <HarvestAnalysisPage

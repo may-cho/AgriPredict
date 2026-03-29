@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from django.conf import settings
+import datetime
 
 class ProfitPredictor:
     def __init__(self):
@@ -25,7 +26,42 @@ class ProfitPredictor:
         self.profit_model = joblib.load(os.path.join(model_dir, 'profit_model_weather.pkl'))
         self.features = joblib.load(os.path.join(model_dir, 'features_weather.pkl'))
 
-    
+    def calculate_timeline(self, crop, planting_month):
+        """
+        စိုက်ပျိုးမည့်လအပေါ် မူတည်ပြီး Timeline ရက်စွဲများ တွက်ချက်ရန်
+        """
+        # ယခုနှစ်ကို ယူမယ်
+        current_year = datetime.now().year
+        # စိုက်ပျိုးမည့်လရဲ့ ၁ ရက်နေ့ကနေ စတွက်မယ်
+        try:
+            start_date = datetime(current_year, planting_month, 1)
+        except ValueError:
+            # လွဲမှားတဲ့ လ (ဥပမာ ၁၃ လ) ဝင်လာရင် လက်ရှိလနဲ့ အစားထိုးမယ်
+            start_date = datetime.now().replace(day=1)
+        
+        # သီးနှံအလိုက် Stage Config ကို ယူမယ် (မရှိရင် default ကို ယူမယ်)
+        stages = self.crop_stages_config.get(crop, self.crop_stages_config['default'])
+        timeline = []
+        now = datetime.now()
+
+        for stage in stages:
+            # ရက်ပေါင်း ပေါင်းထည့်ပြီး Stage တစ်ခုချင်းစီရဲ့ Date ကို ရှာမယ်
+            stage_date = start_date + timedelta(days=stage['days'])
+            
+            # Status တွက်ချက်ခြင်း
+            is_completed = stage_date < now
+            # လက်ရှိ Stage ဟုတ်မဟုတ် (ယနေ့ကနေ ရက် ၃၀ အတွင်းဆိုရင် Current လို့ သတ်မှတ်မယ်)
+            is_current = (now - stage_date).days >= 0 and (now - stage_date).days < 30
+
+            timeline.append({
+                'stage_name': stage['name'],
+                'date': stage_date.strftime('%d %B'), # ဥပမာ - "15 June"
+                'is_completed': is_completed,
+                'is_current': is_current,
+                'status_label': "ပြီးစီး" if is_completed else ("လက်ရှိ" if is_current else "လာမည့်")
+            })
+            
+        return timeline
 
     def compute_weather_features(self, monthly_rainfall, monthly_temp):
         """Compute aggregate weather features from monthly data"""
@@ -116,3 +152,17 @@ class ProfitPredictor:
 
 # Singleton instance
 predictor = ProfitPredictor()
+
+
+def get_current_stage(start_date, crop_type):
+    days_since_planting = (datetime.now() - start_date).days
+    
+  
+    if days_since_planting < 15:
+        return "မြေပြင်ဆင်ခြင်း"
+    elif days_since_planting < 45:
+        return "စိုက်ပျိုးခြင်း"
+    elif days_since_planting < 120:
+        return "ပြုစုစောင့်ရှောက်ခြင်း (ပေါင်းသတ်/မြေသြဇာ)"
+    else:
+        return "ရိတ်သိမ်းခြင်း"
